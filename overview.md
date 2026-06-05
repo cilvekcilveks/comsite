@@ -1704,3 +1704,628 @@ register_uninstall_hook(__FILE__, 'komunitate_uninstall');
 
 
 
+------------------------------------------------
+OKAY------------------------------------------------
+
+# 🎯 KULTŪRA Architecture: CPT vs. Taxonomy - The Right Choice
+
+## The Question You Asked
+
+> "If KULTŪRA is a CPT, then I will have many of those? Does we need to create a specific CPT for each? Or better create KULTŪRA as taxonomies, so we have SPORTS, IZGLĪTĪBA etc.?"
+
+This is the **RIGHT question to ask** and it reveals a fundamental architectural misunderstanding that needs clarification.
+
+---
+
+## 🤔 Let's Clarify: What is KULTŪRA?
+
+### Option A: KULTŪRA as a **Single CPT**
+
+```
+KULTŪRA (Culture) = ONE Custom Post Type
+
+Inside it, you organize by CATEGORIES/TAXONOMIES:
+├─ Post 1: "Latvian Traditional Dance"
+│  └─ Category: Māksla → Deju māksla
+│  └─ Type/Genre: Tradicionāls
+│
+├─ Post 2: "Modern Art Exhibition"
+│  └─ Category: Māksla → Vizuālā māksla
+│  └─ Type/Genre: Kontemporārs
+│
+├─ Post 3: "Sports Training Tips"
+│  └─ Category: Sports
+│  └─ Type/Genre: Praktisks
+│
+└─ Post 4: "Education Webinar"
+   └─ Category: Izglītība
+   └─ Type/Genre: Interaktīvs
+```
+
+**This is the CORRECT approach** ✅
+
+---
+
+### Option B: KULTŪRA as a **Taxonomy** (WRONG)
+
+```
+KULTŪRA = Taxonomy with values:
+├─ Māksla
+├─ Sports
+├─ Izglītība
+└─ Vēsture
+
+But then... what's the CPT?
+├─ Posts? (But posts are for blog)
+├─ Pages? (But pages aren't indexed)
+├─ Something custom? (Back to square one)
+
+PROBLEM: You'd have no single container for "culture content"
+❌ This approach is WRONG
+```
+
+---
+
+## ✅ THE CORRECT ARCHITECTURE
+
+### **Best Practice: 1 CPT + Multiple Taxonomies**
+
+```php
+// Register ONE "kultūra" CPT
+function komunitate_register_kultura_cpt() {
+    register_post_type('kultura', array(
+        'labels' => array(
+            'name' => 'Kultūra',
+            'singular_name' => 'Kultūras Post'
+        ),
+        'public' => true,
+        'has_archive' => true,
+        'rewrite' => array('slug' => 'kultura'),
+        'supports' => array('title', 'editor', 'author', 'thumbnail', 'excerpt', 'comments'),
+        'capability_type' => array('kultura', 'kulturas'),
+        'map_meta_cap' => true,
+    ));
+}
+
+// Register TAXONOMIES to organize posts
+function komunitate_register_kultura_taxonomies() {
+    
+    // PRIMARY: Jomas (Domains/Sections)
+    register_taxonomy('kultura_joma', 'kultura', array(
+        'label' => 'Joma',
+        'hierarchical' => true,  // Can have sub-categories
+        'show_ui' => true,
+        'rewrite' => array('slug' => 'joma'),
+        'show_in_rest' => true,
+    ));
+    
+    // SECONDARY: Veids (Type/Genre)
+    register_taxonomy('kultura_veids', 'kultura', array(
+        'label' => 'Veids',
+        'hierarchical' => false,  // Just tags
+        'show_ui' => true,
+        'rewrite' => array('slug' => 'veids'),
+        'show_in_rest' => true,
+    ));
+}
+```
+
+### **Structure Visualization**
+
+```
+DATABASE:
+wp_posts table
+├─ post_type = 'kultura'
+│  ├─ Post 1: "Deju pamati" (by Author A)
+│  ├─ Post 2: "Mākslas vēsture" (by Author B)
+│  ├─ Post 3: "Sporta treniņi" (by Author C)
+│  └─ Post 4: "Izglītības resursi" (by Author D)
+
+wp_term_relationships table
+├─ Post 1 → Term: "Deju māksla" (from kultura_joma taxonomy)
+├─ Post 1 → Term: "Tradicionāls" (from kultura_veids taxonomy)
+├─ Post 2 → Term: "Vizuālā māksla"
+├─ Post 3 → Term: "Sports"
+└─ Post 4 → Term: "Izglītība"
+
+RESULT:
+✅ Single searchable collection
+✅ Flexible organization
+✅ Easy filtering
+✅ Shared author/comment system
+```
+
+---
+
+## 📊 Comparison: CPT vs. Separate CPTs vs. Taxonomy Approach
+
+### **Scenario: You have 4 KULTŪRA categories**
+
+| Approach | Database | Code | Queries | Flexibility | Best For |
+|----------|----------|------|---------|-------------|----------|
+| **1 CPT + Taxonomies** ✅ | 1 table | Simple | Fast | High | Your situation |
+| **4 Separate CPTs** ❌ | 4 tables | Duplicate | Slower | Low | Completely different content |
+| **KULTŪRA as Taxonomy** ❌ | Depends | Confusing | N/A | N/A | Doesn't work alone |
+
+### **Why 1 CPT + Taxonomies is BEST:**
+
+```
+✅ QUERY PERFORMANCE
+- Single wp_posts query
+- Add taxonomies with tax_query
+- No JOINs needed
+
+✅ CODE REUSABILITY  
+- One template for all: archive-kultura.php
+- One filter system
+- One comment system
+
+✅ AUTHOR MANAGEMENT
+- All posts have post_author
+- Shared capabilities system
+- Single activity feed
+
+✅ FRONTEND
+- Single archive page
+- Multiple category filters
+- Consistent design
+
+✅ MAINTENANCE
+- 1 CPT to manage, not 4
+- Shared field structure
+- Easier backups
+
+❌ SEPARATE CPTs would mean:
+❌ 4 different post types to manage
+❌ 4 different archives (confusing UX)
+❌ Duplicate custom fields
+❌ Users get lost between sections
+❌ Each CPT needs separate admin filters
+```
+
+---
+
+## 🏗️ YOUR SPECIFIC CASE: KULTŪRA with 4+ Domains
+
+### What You Probably Have:
+
+```
+Kultūra Content Areas:
+├─ MĀKSLA (Arts)
+│  ├─ Vizuālā māksla (Visual Arts)
+│  ├─ Mūzika (Music)
+│  ├─ Deju māksla (Dance)
+│  └─ Teātris (Theatre)
+│
+├─ SPORTS
+│  ├─ Individuālie (Individual)
+│  ├─ Komandas (Team)
+│  └─ Ekstrama (Extreme)
+│
+├─ IZGLĪTĪBA (Education)
+│  ├─ Pamatskolas (Primary)
+│  ├─ Vidusskolas (Secondary)
+│  └─ Profesionālā (Vocational)
+│
+└─ VĒSTURE (History)
+   ├─ Latvijas vēsture
+   ├─ Pasaules vēsture
+   └─ Lokālā vēsture
+```
+
+### **SMART IMPLEMENTATION:**
+
+```php
+<?php
+
+// 1. SINGLE CPT for all KULTŪRA
+function komunitate_register_kultura_cpt() {
+    $labels = array(
+        'name'               => 'Kultūra',
+        'singular_name'      => 'Kultūras Post',
+        'menu_name'          => 'Kultūra',
+        'add_new_item'       => 'Pievienot jaunu kultūras postu',
+        'edit_item'          => 'Rediģēt kultūras postu',
+        'all_items'          => 'Visi kultūras positi',
+        'view_item'          => 'Skatīt kultūras postu',
+        'search_items'       => 'Meklēt kultūras postus',
+        'not_found'          => 'Nav atrasti kultūras positi',
+    );
+
+    $args = array(
+        'labels'              => $labels,
+        'public'              => true,
+        'publicly_queryable'  => true,
+        'show_ui'             => true,
+        'show_in_menu'        => true,
+        'query_var'           => true,
+        'rewrite'             => array(
+            'slug'       => 'kultura',
+            'with_front' => false
+        ),
+        'capability_type'     => array('kultura', 'kulturas'),
+        'map_meta_cap'        => true,
+        'supports'            => array(
+            'title',
+            'editor',
+            'author',
+            'thumbnail',
+            'excerpt',
+            'comments',
+            'revisions',
+            'custom-fields'
+        ),
+        'show_in_rest'        => true,
+        'has_archive'         => true,
+        'delete_with_user'    => true,
+    );
+
+    register_post_type('kultura', $args);
+}
+add_action('init', 'komunitate_register_kultura_cpt');
+
+
+// 2. PRIMARY TAXONOMY: Jomas (Domains/Sections)
+// This is HIERARCHICAL - can have parent/child relationships
+function komunitate_register_kultura_joma_taxonomy() {
+    $labels = array(
+        'name'               => 'Jomas',
+        'singular_name'      => 'Joma',
+        'menu_name'          => 'Jomas',
+        'all_items'          => 'Visas jomas',
+        'edit_item'          => 'Rediģēt jomy',
+        'view_item'          => 'Skatīt jomu',
+        'update_item'        => 'Atjaunināt jomu',
+        'add_new_item'       => 'Pievienot jaunu jomu',
+        'new_item_name'      => 'Jaunas jomas nosaukums',
+        'search_items'       => 'Meklēt jomas',
+        'parent_item'        => 'Vecāka joma',
+        'parent_item_colon'  => 'Vecāka joma:',
+    );
+
+    $args = array(
+        'labels'             => $labels,
+        'hierarchical'       => true,  // ← IMPORTANT: Allows nested categories
+        'show_ui'            => true,
+        'show_in_menu'       => true,
+        'show_in_rest'       => true,
+        'query_var'          => true,
+        'rewrite'            => array(
+            'slug'           => 'joma',
+            'with_front'     => false,
+            'hierarchical'   => true
+        ),
+        'show_admin_column'  => true,
+        'show_in_nav_menus'  => true,
+    );
+
+    register_taxonomy('kultura_joma', 'kultura', $args);
+}
+add_action('init', 'komunitate_register_kultura_joma_taxonomy');
+
+
+// 3. SECONDARY TAXONOMY: Veids (Type/Genre)
+// This is NON-HIERARCHICAL - just tags
+function komunitate_register_kultura_veids_taxonomy() {
+    $labels = array(
+        'name'               => 'Veids',
+        'singular_name'      => 'Veids',
+        'menu_name'          => 'Veidi',
+        'all_items'          => 'Visi veidi',
+        'edit_item'          => 'Rediģēt veidu',
+        'view_item'          => 'Skatīt veidu',
+        'add_new_item'       => 'Pievienot jaunu veidu',
+        'new_item_name'      => 'Jauna veida nosaukums',
+        'search_items'       => 'Meklēt veidus',
+    );
+
+    $args = array(
+        'labels'             => $labels,
+        'hierarchical'       => false,  // ← Just tags, no nesting
+        'show_ui'            => true,
+        'show_in_rest'       => true,
+        'query_var'          => true,
+        'rewrite'            => array('slug' => 'veids'),
+        'show_admin_column'  => true,
+        'show_in_nav_menus'  => true,
+    );
+
+    register_taxonomy('kultura_veids', 'kultura', $args);
+}
+add_action('init', 'komunitate_register_kultura_veids_taxonomy');
+
+
+// 4. OPTIONAL: Difficulty/Skill Level
+function komunitate_register_kultura_level_taxonomy() {
+    $labels = array(
+        'name'               => 'Grūtības Pakāpe',
+        'singular_name'      => 'Grūtības Pakāpe',
+        'menu_name'          => 'Grūtības Pakāpes',
+    );
+
+    $args = array(
+        'labels'             => $labels,
+        'hierarchical'       => false,
+        'show_ui'            => true,
+        'show_in_rest'       => true,
+        'query_var'          => true,
+        'rewrite'            => array('slug' => 'grut'),
+    );
+
+    register_taxonomy('kultura_grut', 'kultura', $args);
+}
+add_action('init', 'komunitate_register_kultura_level_taxonomy');
+?>
+```
+
+### **Default Terms to Create:**
+
+```php
+<?php
+
+// Create default Jomas (Domains)
+function komunitate_create_default_jomas() {
+    $jomas = array(
+        // Parent: Māksla
+        'masla' => array(
+            'name' => 'Māksla',
+            'slug' => 'masla',
+            'description' => 'Mākslas formas un mākstniecības prakses'
+        ),
+        'vizuala-masla' => array(
+            'name' => 'Vizuālā māksla',
+            'parent_slug' => 'masla',
+        ),
+        'muzika' => array(
+            'name' => 'Mūzika',
+            'parent_slug' => 'masla',
+        ),
+        'deja' => array(
+            'name' => 'Deju māksla',
+            'parent_slug' => 'masla',
+        ),
+        'teatris' => array(
+            'name' => 'Teātris',
+            'parent_slug' => 'masla',
+        ),
+        
+        // Parent: Sports
+        'sports' => array(
+            'name' => 'Sports',
+            'slug' => 'sports',
+            'description' => 'Sporta aktivitātes un treniņi'
+        ),
+        'individuali-sports' => array(
+            'name' => 'Individuālie Sporta Veidi',
+            'parent_slug' => 'sports',
+        ),
+        'komandas-sports' => array(
+            'name' => 'Komandas Sporta Veidi',
+            'parent_slug' => 'sports',
+        ),
+        
+        // Parent: Izglītība
+        'izglitiba' => array(
+            'name' => 'Izglītība',
+            'slug' => 'izglitiba',
+            'description' => 'Izglītības resursi un mācības materiāli'
+        ),
+        'pamatskola' => array(
+            'name' => 'Pamatskola',
+            'parent_slug' => 'izglitiba',
+        ),
+        'vidusskola' => array(
+            'name' => 'Vidusskola',
+            'parent_slug' => 'izglitiba',
+        ),
+        
+        // Parent: Vēsture
+        'vesture' => array(
+            'name' => 'Vēsture',
+            'slug' => 'vesture',
+            'description' => 'Vēsturiskā un kulturālā mantojuma iepazīšana'
+        ),
+        'latvijas-vesture' => array(
+            'name' => 'Latvijas Vēsture',
+            'parent_slug' => 'vesture',
+        ),
+        'lokala-vesture' => array(
+            'name' => 'Lokālā Vēsture',
+            'parent_slug' => 'vesture',
+        ),
+    );
+
+    foreach ($jomas as $slug => $data) {
+        // Check if already exists
+        if (!term_exists($data['name'], 'kultura_joma')) {
+            $parent_id = 0;
+            
+            // If has parent, get parent ID
+            if (isset($data['parent_slug'])) {
+                $parent_term = get_term_by('slug', $data['parent_slug'], 'kultura_joma');
+                if ($parent_term) {
+                    $parent_id = $parent_term->term_id;
+                }
+            }
+            
+            wp_insert_term(
+                $data['name'],
+                'kultura_joma',
+                array(
+                    'slug' => $slug,
+                    'description' => isset($data['description']) ? $data['description'] : '',
+                    'parent' => $parent_id,
+                )
+            );
+        }
+    }
+}
+// Run on plugin activation
+register_activation_hook(__FILE__, 'komunitate_create_default_jomas');
+?>
+```
+
+### **Create Default Veids (Types):**
+
+```php
+<?php
+
+function komunitate_create_default_veids() {
+    $veids = array(
+        'Artikuls' => 'Informatīvs raksts',
+        'Pamācība' => 'Soli pa solim pamācība',
+        'Video' => 'Video saturs',
+        'Klase' => 'Interaktīva klase vai kurss',
+        'Resurss' => 'Lejupielādējams resurss',
+        'Diskusija' => 'Diskusijas starter',
+    );
+
+    foreach ($veids as $name => $description) {
+        if (!term_exists($name, 'kultura_veids')) {
+            wp_insert_term(
+                $name,
+                'kultura_veids',
+                array('description' => $description)
+            );
+        }
+    }
+}
+register_activation_hook(__FILE__, 'komunitate_create_default_veids');
+?>
+```
+
+---
+
+## 📝 How Users Will See It
+
+### **Admin Edit Screen (Creating a New Kultūra Post):**
+
+```
+Title: [________________________________]
+
+Content Editor (WYSIWYG)
+
+Joma (Domain):      ☑ Māksla
+                    ☑ Vizuālā māksla
+                    ☐ Mūzika
+
+Veids (Type):       ☑ Artikuls
+                    ☑ Video
+                    ☐ Pamācība
+
+Grūtības Pakāpe:    ☑ Iesācējs
+                    ☐ Vidēja
+```
+
+### **Frontend User View:**
+
+```
+KULTŪRA ARCHIVE
+
+Filter by Joma (Domain):
+├─ Māksla (15)
+│  ├─ Vizuālā māksla (8)
+│  ├─ Mūzika (4)
+│  └─ Deju māksla (3)
+├─ Sports (22)
+│  ├─ Individuālie (12)
+│  └─ Komandas (10)
+├─ Izglītība (18)
+└─ Vēsture (11)
+
+Filter by Veids:
+├─ Artikuls (24)
+├─ Pamācība (18)
+├─ Video (12)
+└─ ...
+
+[Showing 12 posts from "Vizuālā māksla"]
+
+Post 1: "Acrylics Painting Basics"
+        Author: Jane | Veids: Pamācība | Grūtības: Iesācējs
+
+Post 2: "Famous Latvian Artists"
+        Author: John | Veids: Artikuls | Grūtības: Vidēja
+```
+
+---
+
+## ✅ THE ANSWER TO YOUR QUESTION
+
+**Q: "Do we need separate CPT for each KULTŪRA category?"**
+
+**A: NO. Absolutely not.**
+
+```
+WRONG APPROACH:
+❌ Create CPT: "Masla" (Arts)
+❌ Create CPT: "Sports" 
+❌ Create CPT: "Izglitiba" (Education)
+❌ Create CPT: "Vesture" (History)
+
+This would result in:
+- 4 separate admin menus (confusing)
+- 4 different templates needed
+- 4 archives (users lost)
+- Duplicate capabilities
+- Hard to search across all culture
+- Nightmare to maintain
+
+CORRECT APPROACH:
+✅ Create CPT: "kultura" (1 only!)
+✅ Create Taxonomy: "kultura_joma" (organizes all)
+✅ Add Veids Taxonomy (secondary filtering)
+✅ Add custom fields for metadata
+
+Result:
+- 1 unified culture collection
+- 1 dashboard/archive
+- Easy cross-category search
+- Flexible categorization
+- Easy to manage
+```
+
+---
+
+## 🎯 FINAL ARCHITECTURE FOR YOU
+
+```php
+// Your production-ready setup:
+
+PLUGIN: komunitate-kultura/
+├── includes/
+│   ├── cpt-kultura.php          // Register 'kultura' CPT
+│   ├── taxonomy-joma.php        // Register 'kultura_joma' (hierarchical)
+│   ├── taxonomy-veids.php       // Register 'kultura_veids' (flat)
+│   ├── taxonomy-grut.php        // Optional: Difficulty level
+│   └── activation-hooks.php     // Create default terms
+├── templates/
+│   ├── archive-kultura.php      // Main archive with filters
+│   ├── single-kultura.php       // Single post template
+│   └── parts/
+│       ├── joma-filter.php      // Category sidebar
+│       └── veids-filter.php     // Type filter
+└── komunitate-kultura.php       // Main plugin file
+```
+
+---
+
+## 💡 Key Takeaway
+
+> **"1 CPT + Multiple Taxonomies" is the WordPress way to handle this.**
+
+It's:
+- ✅ More efficient
+- ✅ More flexible
+- ✅ Easier to maintain
+- ✅ Better for users
+- ✅ WordPress-idiomatic
+- ✅ Scales to 1000s of posts
+
+**You get one unified "KULTŪRA" space with unlimited categorization options.**
+
+This is the architecture that will serve your community site best. One container for all culture content, organized by flexible taxonomies that can be managed and expanded without touching any code. Perfect for what you're building! 🚀
+
+
+
+
